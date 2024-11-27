@@ -16,7 +16,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  philiprehberger_env: ^0.1.0
+  philiprehberger_env: ^0.2.0
 ```
 
 Then run:
@@ -54,14 +54,17 @@ print(env.getString('DB_HOST')); // localhost
 ### Typed Getters
 
 ```dart
-final env = Env.fromString('PORT=8080\nDEBUG=true\nTAGS=a,b,c');
+final env = Env.fromString('PORT=8080\nRATE=3.14\nDEBUG=true\nTAGS=a,b,c\nURL=https://example.com');
 
 env.getString('PORT');                          // "8080"
 env.getInt('PORT');                             // 8080
+env.getDouble('RATE');                         // 3.14
 env.getBool('DEBUG');                           // true
 env.getList('TAGS');                            // ["a", "b", "c"]
+env.getUri('URL');                             // Uri(https://example.com)
 env.getString('MISSING', defaultValue: 'n/a'); // "n/a"
 env.has('PORT');                                // true
+env.keys;                                      // ('PORT', 'DEBUG', ...)
 ```
 
 ### Variable Expansion
@@ -69,6 +72,28 @@ env.has('PORT');                                // true
 ```dart
 final env = Env.fromString('HOST=localhost\nURL=http://\${HOST}:8080');
 print(env.getString('URL')); // http://localhost:8080
+```
+
+### Default Variable Fallback
+
+Use `${VAR:-default}` syntax to provide a fallback value when a variable is missing or empty:
+
+```dart
+final env = Env.fromString('URL=\${API_HOST:-localhost}:\${API_PORT:-3000}');
+print(env.getString('URL')); // localhost:3000
+```
+
+### Merging Environments
+
+Combine multiple Env instances with override semantics:
+
+```dart
+final defaults = Env({'PORT': '3000', 'HOST': 'localhost'});
+final overrides = Env({'PORT': '8080'});
+final env = defaults.merge(overrides);
+
+print(env.getInt('PORT'));     // 8080 (overridden)
+print(env.getString('HOST')); // localhost (from defaults)
 ```
 
 ### Quoted Values
@@ -88,8 +113,12 @@ print(env.getString('PATH')); // /usr/bin
 | `getString(String key, {String? defaultValue})` | Get a string value |
 | `getInt(String key, {int? defaultValue})` | Get an integer value |
 | `getBool(String key, {bool? defaultValue})` | Get a boolean (`true`/`1`/`yes`/`on`) |
+| `getDouble(String key, {double? defaultValue})` | Get a double value |
 | `getList(String key, {String separator, List<String>? defaultValue})` | Get a list by splitting on separator |
+| `getUri(String key, {Uri? defaultValue})` | Get a parsed URI value |
 | `has(String key)` | Check if a key exists |
+| `keys` | Get all available keys |
+| `merge(Env other)` | Combine with another Env (other wins on overlap) |
 | `toMap()` | Get all values as a map |
 | `DotenvParser.parse(String content)` | Parse `.env` content into a `Map<String, String>` |
 

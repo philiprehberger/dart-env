@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-04
+
+### Added
+- `getDouble()` for parsing floating-point environment values
+- `getUri()` for parsing URI environment values
+- `merge()` for combining multiple Env instances with override semantics
+- `keys` getter to retrieve all available environment variable names
+- Default variable fallback syntax `${VAR:-default}` in dotenv parsing
+
 ## [0.1.0] - 2026-04-03
 
 ### Added

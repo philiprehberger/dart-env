@@ -52,9 +52,13 @@ class DotenvParser {
   }
 
   static String _expand(String value, Map<String, String> vars) {
-    return value.replaceAllMapped(RegExp(r'\$\{(\w+)\}'), (match) {
+    return value.replaceAllMapped(RegExp(r'\$\{(\w+)(?::-(.*?))?\}'), (match) {
       final varName = match.group(1)!;
-      return vars[varName] ?? '';
+      final defaultValue = match.group(2);
+      final resolved = vars[varName];
+      if (resolved != null && resolved.isNotEmpty) return resolved;
+      if (defaultValue != null) return defaultValue;
+      return '';
     });
   }
 }
