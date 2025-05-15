@@ -108,6 +108,31 @@ class Env {
     return Env({...toMap(), ...other.toMap()});
   }
 
+  /// Returns the value for [key] parsed as an enum value from [values].
+  ///
+  /// Matching is case-insensitive against the enum name.
+  ///
+  /// ```dart
+  /// enum LogLevel { debug, info, warn, error }
+  /// final level = env.getEnum('LOG_LEVEL', LogLevel.values);
+  /// ```
+  ///
+  /// Throws [EnvMissingKeyException] if [key] is not found and no
+  /// [defaultValue] is provided.
+  /// Throws [EnvParseException] if the value does not match any enum name.
+  T getEnum<T extends Enum>(String key, List<T> values, {T? defaultValue}) {
+    final raw = _values[key];
+    if (raw == null) {
+      if (defaultValue != null) return defaultValue;
+      throw EnvMissingKeyException(key);
+    }
+    final lower = raw.toLowerCase();
+    for (final value in values) {
+      if (value.name.toLowerCase() == lower) return value;
+    }
+    throw EnvParseException(key, raw, 'enum');
+  }
+
   /// Returns all available keys.
   Iterable<String> get keys => _values.keys;
 
