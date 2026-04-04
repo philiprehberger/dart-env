@@ -65,6 +65,52 @@ class Env {
   /// Check if a key exists.
   bool has(String key) => _values.containsKey(key);
 
+  /// Returns the value for [key] parsed as a double.
+  ///
+  /// Throws [EnvMissingKeyException] if [key] is not found and no
+  /// [defaultValue] is provided.
+  /// Throws [EnvParseException] if the value cannot be parsed as a double.
+  double getDouble(String key, {double? defaultValue}) {
+    final raw = _values[key];
+    if (raw == null) {
+      if (defaultValue != null) return defaultValue;
+      throw EnvMissingKeyException(key);
+    }
+    final parsed = double.tryParse(raw);
+    if (parsed == null) {
+      throw EnvParseException(key, raw, 'double');
+    }
+    return parsed;
+  }
+
+  /// Returns the value for [key] parsed as a [Uri].
+  ///
+  /// Throws [EnvMissingKeyException] if [key] is not found and no
+  /// [defaultValue] is provided.
+  /// Throws [EnvParseException] if the value cannot be parsed as a URI.
+  Uri getUri(String key, {Uri? defaultValue}) {
+    final raw = _values[key];
+    if (raw == null) {
+      if (defaultValue != null) return defaultValue;
+      throw EnvMissingKeyException(key);
+    }
+    final parsed = Uri.tryParse(raw);
+    if (parsed == null) {
+      throw EnvParseException(key, raw, 'Uri');
+    }
+    return parsed;
+  }
+
+  /// Returns a new [Env] combining this instance with [other].
+  ///
+  /// Values from [other] override values from this instance when keys overlap.
+  Env merge(Env other) {
+    return Env({...toMap(), ...other.toMap()});
+  }
+
+  /// Returns all available keys.
+  Iterable<String> get keys => _values.keys;
+
   /// Get all values as a map.
   Map<String, String> toMap() => Map.from(_values);
 }

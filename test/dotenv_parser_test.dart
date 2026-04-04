@@ -43,5 +43,27 @@ void main() {
       final result = DotenvParser.parse('  KEY  =  value  ');
       expect(result['KEY'], equals('value'));
     });
+
+    group('default variable fallback', () {
+      test('uses variable value when variable exists', () {
+        final result = DotenvParser.parse('HOST=server\nURL=\${HOST:-localhost}');
+        expect(result['URL'], equals('server'));
+      });
+
+      test('uses default when variable is missing', () {
+        final result = DotenvParser.parse('URL=\${MISSING:-localhost}');
+        expect(result['URL'], equals('localhost'));
+      });
+
+      test('uses default when variable is empty', () {
+        final result = DotenvParser.parse('HOST=\nURL=\${HOST:-localhost}');
+        expect(result['URL'], equals('localhost'));
+      });
+
+      test('default can contain spaces', () {
+        final result = DotenvParser.parse('MSG=\${GREETING:-hello world}');
+        expect(result['MSG'], equals('hello world'));
+      });
+    });
   });
 }
