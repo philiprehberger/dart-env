@@ -16,7 +16,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  philiprehberger_env: ^0.2.0
+  philiprehberger_env: ^0.3.0
 ```
 
 Then run:
@@ -54,7 +54,7 @@ print(env.getString('DB_HOST')); // localhost
 ### Typed Getters
 
 ```dart
-final env = Env.fromString('PORT=8080\nRATE=3.14\nDEBUG=true\nTAGS=a,b,c\nURL=https://example.com');
+final env = Env.fromString('PORT=8080\nRATE=3.14\nDEBUG=true\nTAGS=a,b,c\nURL=https://example.com\nLOG_LEVEL=info');
 
 env.getString('PORT');                          // "8080"
 env.getInt('PORT');                             // 8080
@@ -62,6 +62,7 @@ env.getDouble('RATE');                         // 3.14
 env.getBool('DEBUG');                           // true
 env.getList('TAGS');                            // ["a", "b", "c"]
 env.getUri('URL');                             // Uri(https://example.com)
+env.getEnum('LOG_LEVEL', LogLevel.values);     // LogLevel.info
 env.getString('MISSING', defaultValue: 'n/a'); // "n/a"
 env.has('PORT');                                // true
 env.keys;                                      // ('PORT', 'DEBUG', ...)
@@ -116,6 +117,7 @@ print(env.getString('PATH')); // /usr/bin
 | `getDouble(String key, {double? defaultValue})` | Get a double value |
 | `getList(String key, {String separator, List<String>? defaultValue})` | Get a list by splitting on separator |
 | `getUri(String key, {Uri? defaultValue})` | Get a parsed URI value |
+| `getEnum<T>(String key, List<T> values, {T? defaultValue})` | Get an enum value (case-insensitive match) |
 | `has(String key)` | Check if a key exists |
 | `keys` | Get all available keys |
 | `merge(Env other)` | Combine with another Env (other wins on overlap) |
