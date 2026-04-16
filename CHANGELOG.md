@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-17
+
+### Added
+- `Env.fromPlatform()` factory to load variables from the process environment
+- `Env.fromMap()` named constructor as a readable alias for the default constructor
+
 ## [0.3.0] - 2026-04-05
 
 ### Added

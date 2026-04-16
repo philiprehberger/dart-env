@@ -1,4 +1,5 @@
 import 'dotenv_parser.dart';
+import 'env_io.dart';
 
 /// A loaded environment with typed value access.
 ///
@@ -138,6 +139,16 @@ class Env {
 
   /// Get all values as a map.
   Map<String, String> toMap() => Map.from(_values);
+
+  /// Create an Env from a map.
+  ///
+  /// This is a named alternative to the default constructor for readability.
+  factory Env.fromMap(Map<String, String> values) => Env(values);
+
+  /// Create an Env from the current process environment.
+  ///
+  /// Loads all variables from [Platform.environment] (dart:io).
+  factory Env.fromPlatform() => envFromPlatform();
 }
 
 /// Thrown when a required key is missing.
