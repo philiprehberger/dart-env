@@ -16,7 +16,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  philiprehberger_env: ^0.3.0
+  philiprehberger_env: ^0.4.0
 ```
 
 Then run:
@@ -97,6 +97,16 @@ print(env.getInt('PORT'));     // 8080 (overridden)
 print(env.getString('HOST')); // localhost (from defaults)
 ```
 
+### Process Environment
+
+```dart
+import 'package:philiprehberger_env/philiprehberger_env.dart';
+
+final env = Env.fromPlatform();
+print(env.getString('HOME'));
+print(env.getString('PATH'));
+```
+
 ### Quoted Values
 
 ```dart
@@ -110,7 +120,9 @@ print(env.getString('PATH')); // /usr/bin
 | Method | Description |
 |--------|-------------|
 | `Env(Map<String, String> values)` | Create an Env from a pre-parsed map |
+| `Env.fromMap(Map<String, String> values)` | Named constructor — alias for Env() |
 | `Env.fromString(String content)` | Parse a `.env` file content string |
+| `Env.fromPlatform()` | Load all variables from the process environment |
 | `getString(String key, {String? defaultValue})` | Get a string value |
 | `getInt(String key, {int? defaultValue})` | Get an integer value |
 | `getBool(String key, {bool? defaultValue})` | Get a boolean (`true`/`1`/`yes`/`on`) |

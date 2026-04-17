@@ -1,7 +1,7 @@
 name: philiprehberger_env
 description: >-
   Dotenv file parser with typed getters and multi-environment support
-version: 0.3.0
+version: 0.4.0
 homepage: https://philiprehberger.com/open-source-packages/dart/philiprehberger_env
 repository: https://github.com/philiprehberger/dart-env
 issue_tracker: https://github.com/philiprehberger/dart-env/issues

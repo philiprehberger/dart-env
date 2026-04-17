@@ -134,5 +134,27 @@ void main() {
         expect(env.keys, isEmpty);
       });
     });
+
+    group('fromMap', () {
+      test('creates env from map', () {
+        final env = Env.fromMap({'KEY': 'value'});
+        expect(env.getString('KEY'), equals('value'));
+      });
+    });
+
+    group('fromPlatform', () {
+      test('loads process environment variables', () {
+        final env = Env.fromPlatform();
+        // PATH is available on all platforms
+        expect(env.has('PATH'), isTrue);
+        expect(env.getString('PATH'), isNotEmpty);
+      });
+
+      test('returns typed values from platform env', () {
+        final env = Env.fromPlatform();
+        final keys = env.keys;
+        expect(keys, isNotEmpty);
+      });
+    });
   });
 }
