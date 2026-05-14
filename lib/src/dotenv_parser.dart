@@ -2,10 +2,11 @@
 ///
 /// Supports:
 /// - `KEY=value` pairs
-/// - Single and double quoted values
+/// - Optional shell-style `export KEY=value` prefix
+/// - Single and double quoted values (escape sequences decoded in double quotes)
 /// - `#` comments
 /// - Empty lines
-/// - Variable expansion with `${VAR}`
+/// - Variable expansion with `${VAR}` and `${VAR:-default}` fallback
 class DotenvParser {
   DotenvParser._();
 
@@ -21,18 +22,24 @@ class DotenvParser {
       final equalsIndex = line.indexOf('=');
       if (equalsIndex < 0) continue;
 
-      final key = line.substring(0, equalsIndex).trim();
+      var key = line.substring(0, equalsIndex).trim();
       var value = line.substring(equalsIndex + 1).trim();
 
-      // Remove quotes
-      if ((value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.substring(1, value.length - 1);
+      if (key.startsWith('export ')) {
+        key = key.substring('export '.length).trim();
       }
+      if (key.isEmpty) continue;
 
-      // Inline comment (only for unquoted values)
-      if (!line.substring(equalsIndex + 1).trim().startsWith('"') &&
-          !line.substring(equalsIndex + 1).trim().startsWith("'")) {
+      // Quoted values: strip quotes; decode escape sequences inside double quotes.
+      final isDoubleQuoted = value.startsWith('"') && value.endsWith('"') && value.length >= 2;
+      final isSingleQuoted = value.startsWith("'") && value.endsWith("'") && value.length >= 2;
+
+      if (isDoubleQuoted) {
+        value = _decodeDoubleQuoted(value.substring(1, value.length - 1));
+      } else if (isSingleQuoted) {
+        value = value.substring(1, value.length - 1);
+      } else {
+        // Inline comment (only for unquoted values).
         final commentIndex = value.indexOf(' #');
         if (commentIndex >= 0) {
           value = value.substring(0, commentIndex).trim();
@@ -49,6 +56,40 @@ class DotenvParser {
     }
 
     return expanded;
+  }
+
+  static String _decodeDoubleQuoted(String value) {
+    final buffer = StringBuffer();
+    for (var i = 0; i < value.length; i++) {
+      final char = value[i];
+      if (char == r'\' && i + 1 < value.length) {
+        final next = value[i + 1];
+        switch (next) {
+          case 'n':
+            buffer.write('\n');
+            break;
+          case 't':
+            buffer.write('\t');
+            break;
+          case 'r':
+            buffer.write('\r');
+            break;
+          case r'\':
+            buffer.write(r'\');
+            break;
+          case '"':
+            buffer.write('"');
+            break;
+          default:
+            buffer.write(char);
+            buffer.write(next);
+        }
+        i++;
+      } else {
+        buffer.write(char);
+      }
+    }
+    return buffer.toString();
   }
 
   static String _expand(String value, Map<String, String> vars) {

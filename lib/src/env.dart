@@ -149,6 +149,89 @@ class Env {
   ///
   /// Loads all variables from [Platform.environment] (dart:io).
   factory Env.fromPlatform() => envFromPlatform();
+
+  /// Read a `.env` file from [path] and parse it into an [Env].
+  ///
+  /// Uses synchronous file IO from `dart:io`. Throws a `FileSystemException`
+  /// if the file does not exist or is not readable.
+  factory Env.fromFile(String path) => envFromFile(path);
+
+  /// Raw nullable access to a key's underlying value.
+  ///
+  /// Returns `null` if [key] is not set. Use the typed getters
+  /// (`getString`, `getInt`, ...) when a value is expected.
+  String? operator [](String key) => _values[key];
+
+  /// Returns the value for [key] parsed as a [DateTime].
+  ///
+  /// Accepts any format parseable by [DateTime.tryParse] (ISO 8601 /
+  /// RFC 3339 timestamps).
+  ///
+  /// Throws [EnvMissingKeyException] if [key] is not found and no
+  /// [defaultValue] is provided.
+  /// Throws [EnvParseException] if the value cannot be parsed.
+  DateTime getDateTime(String key, {DateTime? defaultValue}) {
+    final raw = _values[key];
+    if (raw == null) {
+      if (defaultValue != null) return defaultValue;
+      throw EnvMissingKeyException(key);
+    }
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) {
+      throw EnvParseException(key, raw, 'DateTime');
+    }
+    return parsed;
+  }
+
+  /// Returns the value for [key] parsed as a [Duration].
+  ///
+  /// Accepts suffixed values: `ms`, `s`, `m`, `h`, `d` (e.g. `30s`, `2h`).
+  /// A bare integer with no suffix is interpreted as milliseconds.
+  ///
+  /// Throws [EnvMissingKeyException] if [key] is not found and no
+  /// [defaultValue] is provided.
+  /// Throws [EnvParseException] if the value cannot be parsed.
+  Duration getDuration(String key, {Duration? defaultValue}) {
+    final raw = _values[key];
+    if (raw == null) {
+      if (defaultValue != null) return defaultValue;
+      throw EnvMissingKeyException(key);
+    }
+    final match = RegExp(r'^(\d+)(ms|s|m|h|d)?$').firstMatch(raw.trim());
+    if (match == null) {
+      throw EnvParseException(key, raw, 'Duration');
+    }
+    final amount = int.parse(match.group(1)!);
+    switch (match.group(2)) {
+      case 'ms':
+      case null:
+        return Duration(milliseconds: amount);
+      case 's':
+        return Duration(seconds: amount);
+      case 'm':
+        return Duration(minutes: amount);
+      case 'h':
+        return Duration(hours: amount);
+      case 'd':
+        return Duration(days: amount);
+    }
+    throw EnvParseException(key, raw, 'Duration');
+  }
+
+  /// Validates that every key in [keys] is present.
+  ///
+  /// Throws [EnvMissingKeysException] listing all missing keys at once.
+  /// Useful at application startup so configuration problems surface
+  /// immediately rather than one at a time.
+  void require(Iterable<String> keys) {
+    final missing = keys.where((k) => !_values.containsKey(k)).toList();
+    if (missing.isNotEmpty) {
+      throw EnvMissingKeysException(missing);
+    }
+  }
+
+  @override
+  String toString() => 'Env(${_values.length} keys)';
 }
 
 /// Thrown when a required key is missing.
@@ -161,6 +244,19 @@ class EnvMissingKeyException implements Exception {
 
   @override
   String toString() => 'EnvMissingKeyException: Key "$key" not found';
+}
+
+/// Thrown by [Env.require] when one or more required keys are missing.
+class EnvMissingKeysException implements Exception {
+  /// The list of missing keys.
+  final List<String> keys;
+
+  /// Create exception.
+  EnvMissingKeysException(this.keys);
+
+  @override
+  String toString() =>
+      'EnvMissingKeysException: Missing required keys: ${keys.join(', ')}';
 }
 
 /// Thrown when a value cannot be parsed to the expected type.

@@ -44,6 +44,46 @@ void main() {
       expect(result['KEY'], equals('value'));
     });
 
+    group('export prefix', () {
+      test('strips leading export from key', () {
+        final result = DotenvParser.parse('export KEY=value');
+        expect(result['KEY'], equals('value'));
+        expect(result.containsKey('export KEY'), isFalse);
+      });
+
+      test('mixes export and non-export lines', () {
+        final result = DotenvParser.parse('export A=1\nB=2');
+        expect(result, equals({'A': '1', 'B': '2'}));
+      });
+    });
+
+    group('escape sequences in double-quoted values', () {
+      test('decodes \\n as newline', () {
+        final result = DotenvParser.parse('KEY="line one\\nline two"');
+        expect(result['KEY'], equals('line one\nline two'));
+      });
+
+      test('decodes \\t as tab', () {
+        final result = DotenvParser.parse('KEY="a\\tb"');
+        expect(result['KEY'], equals('a\tb'));
+      });
+
+      test('decodes \\\\ as backslash', () {
+        final result = DotenvParser.parse(r'KEY="a\\b"');
+        expect(result['KEY'], equals(r'a\b'));
+      });
+
+      test('decodes \\" as quote', () {
+        final result = DotenvParser.parse('KEY="say \\"hi\\""');
+        expect(result['KEY'], equals('say "hi"'));
+      });
+
+      test('single-quoted values stay literal', () {
+        final result = DotenvParser.parse(r"KEY='line\nbreak'");
+        expect(result['KEY'], equals(r'line\nbreak'));
+      });
+    });
+
     group('default variable fallback', () {
       test('uses variable value when variable exists', () {
         final result = DotenvParser.parse('HOST=server\nURL=\${HOST:-localhost}');

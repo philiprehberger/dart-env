@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-13
+
+### Added
+- `Env.fromFile(String path)` factory to load a `.env` file from disk
+- `getDateTime()` parses ISO 8601 / RFC 3339 timestamps
+- `getDuration()` parses durations with `ms` / `s` / `m` / `h` / `d` suffixes (bare integer = milliseconds)
+- `require(Iterable<String> keys)` validates required keys, throws `EnvMissingKeysException` listing all missing
+- `operator [](String key)` nullable raw value access
+- `Env.toString()` reports key count without leaking values
+- `EnvMissingKeysException` for aggregated missing-key reporting
+- Parser: `export KEY=value` shell-style prefix is stripped
+- Parser: escape sequences (`\n`, `\t`, `\r`, `\\`, `\"`) decoded inside double-quoted values
+
 ## [0.4.0] - 2026-04-17
 
 ### Added

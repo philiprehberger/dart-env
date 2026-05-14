@@ -16,7 +16,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  philiprehberger_env: ^0.4.0
+  philiprehberger_env: ^0.5.0
 ```
 
 Then run:
@@ -107,12 +107,60 @@ print(env.getString('HOME'));
 print(env.getString('PATH'));
 ```
 
+### Loading from a File
+
+```dart
+final env = Env.fromFile('.env');
+print(env.getString('DB_HOST'));
+```
+
+### Date and Duration Values
+
+```dart
+final env = Env.fromString('DEPLOYED_AT=2026-05-13T22:30:00Z\nTIMEOUT=30s\nRETRY=500ms\nTTL=2h');
+env.getDateTime('DEPLOYED_AT'); // DateTime(2026-05-13 22:30:00Z)
+env.getDuration('TIMEOUT');     // Duration(seconds: 30)
+env.getDuration('RETRY');       // Duration(milliseconds: 500)
+env.getDuration('TTL');         // Duration(hours: 2)
+```
+
+Duration suffixes: `ms`, `s`, `m`, `h`, `d`. A bare integer is treated as milliseconds.
+
+### Required Keys
+
+Validate all required keys at startup so missing configuration fails fast:
+
+```dart
+final env = Env.fromPlatform();
+env.require(['DB_HOST', 'DB_PORT', 'API_KEY']);
+// throws EnvMissingKeysException listing every missing key
+```
+
+### Raw Access
+
+```dart
+final env = Env({'DEBUG': 'true'});
+env['DEBUG'];   // "true"
+env['MISSING']; // null
+```
+
 ### Quoted Values
 
 ```dart
 final env = Env.fromString('MSG="hello world"\nPATH=\'/usr/bin\'');
 print(env.getString('MSG'));  // hello world
 print(env.getString('PATH')); // /usr/bin
+```
+
+Double-quoted values decode escape sequences (`\n`, `\t`, `\r`, `\\`, `\"`). Single-quoted values stay literal.
+
+### Shell-Style `export`
+
+`export KEY=value` lines (so the same file can be sourced from bash) are parsed as `KEY=value`:
+
+```dart
+final env = Env.fromString('export PORT=8080');
+env.getInt('PORT'); // 8080
 ```
 
 ## API
@@ -123,6 +171,7 @@ print(env.getString('PATH')); // /usr/bin
 | `Env.fromMap(Map<String, String> values)` | Named constructor — alias for Env() |
 | `Env.fromString(String content)` | Parse a `.env` file content string |
 | `Env.fromPlatform()` | Load all variables from the process environment |
+| `Env.fromFile(String path)` | Load and parse a `.env` file from disk |
 | `getString(String key, {String? defaultValue})` | Get a string value |
 | `getInt(String key, {int? defaultValue})` | Get an integer value |
 | `getBool(String key, {bool? defaultValue})` | Get a boolean (`true`/`1`/`yes`/`on`) |
@@ -130,7 +179,11 @@ print(env.getString('PATH')); // /usr/bin
 | `getList(String key, {String separator, List<String>? defaultValue})` | Get a list by splitting on separator |
 | `getUri(String key, {Uri? defaultValue})` | Get a parsed URI value |
 | `getEnum<T>(String key, List<T> values, {T? defaultValue})` | Get an enum value (case-insensitive match) |
+| `getDateTime(String key, {DateTime? defaultValue})` | Get an ISO 8601 / RFC 3339 timestamp |
+| `getDuration(String key, {Duration? defaultValue})` | Get a duration with `ms`/`s`/`m`/`h`/`d` suffix (bare integer = ms) |
+| `operator [](String key)` | Raw nullable value access |
 | `has(String key)` | Check if a key exists |
+| `require(Iterable<String> keys)` | Throw if any required key is missing (lists all missing) |
 | `keys` | Get all available keys |
 | `merge(Env other)` | Combine with another Env (other wins on overlap) |
 | `toMap()` | Get all values as a map |
