@@ -38,6 +38,27 @@ class Env {
     throw EnvMissingKeyException(key);
   }
 
+  /// Get a [BigInt] value.
+  ///
+  /// Useful for very large numeric IDs, balances, or other values that exceed
+  /// the platform `int` range.
+  ///
+  /// Throws [EnvMissingKeyException] if [key] is not found and no
+  /// [defaultValue] is provided.
+  /// Throws [EnvParseException] if the value cannot be parsed as a BigInt.
+  BigInt getBigInt(String key, {BigInt? defaultValue}) {
+    final raw = _values[key];
+    if (raw == null) {
+      if (defaultValue != null) return defaultValue;
+      throw EnvMissingKeyException(key);
+    }
+    final parsed = BigInt.tryParse(raw);
+    if (parsed == null) {
+      throw EnvParseException(key, raw, 'BigInt');
+    }
+    return parsed;
+  }
+
   /// Get a boolean value.
   ///
   /// Truthy: `true`, `1`, `yes`, `on`
@@ -155,6 +176,77 @@ class Env {
   /// Uses synchronous file IO from `dart:io`. Throws a `FileSystemException`
   /// if the file does not exist or is not readable.
   factory Env.fromFile(String path) => envFromFile(path);
+
+  /// Read and merge multiple `.env` files in priority order.
+  ///
+  /// Later paths override earlier ones — the typical layering convention is
+  /// `['.env', '.env.local']` where `.env.local` wins.
+  ///
+  /// Throws `FileSystemException` if any file is missing. Callers that want
+  /// optional layering should `try`/`catch` per path.
+  factory Env.fromFiles(List<String> paths) => envFromFiles(paths);
+
+  /// Returns a new [Env] containing only entries whose key starts with
+  /// [prefix].
+  ///
+  /// When [stripPrefix] is `true`, the prefix is removed from each key in the
+  /// returned [Env] — convenient for passing a namespaced subset into a
+  /// sub-component that doesn't care about the prefix.
+  ///
+  /// ```dart
+  /// final db = env.prefixed('DB_', stripPrefix: true);
+  /// db.getString('HOST'); // value of DB_HOST
+  /// ```
+  Env prefixed(String prefix, {bool stripPrefix = false}) {
+    final out = <String, String>{};
+    for (final entry in _values.entries) {
+      if (!entry.key.startsWith(prefix)) continue;
+      final key = stripPrefix ? entry.key.substring(prefix.length) : entry.key;
+      out[key] = entry.value;
+    }
+    return Env(out);
+  }
+
+  /// Returns a new [Env] containing only entries for which [predicate] returns
+  /// `true`. The original instance is unchanged.
+  Env filter(bool Function(String key, String value) predicate) {
+    final out = <String, String>{};
+    for (final entry in _values.entries) {
+      if (predicate(entry.key, entry.value)) {
+        out[entry.key] = entry.value;
+      }
+    }
+    return Env(out);
+  }
+
+  /// Number of keys in this [Env].
+  int get length => _values.length;
+
+  /// Whether this [Env] has no keys.
+  bool get isEmpty => _values.isEmpty;
+
+  /// Whether this [Env] has at least one key.
+  bool get isNotEmpty => _values.isNotEmpty;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Env) return false;
+    if (_values.length != other._values.length) return false;
+    for (final entry in _values.entries) {
+      if (other._values[entry.key] != entry.value) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode {
+    var hash = 0;
+    for (final entry in _values.entries) {
+      hash ^= entry.key.hashCode ^ entry.value.hashCode;
+    }
+    return hash;
+  }
 
   /// Raw nullable access to a key's underlying value.
   ///

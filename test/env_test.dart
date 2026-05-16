@@ -289,5 +289,130 @@ void main() {
         expect(env.toString(), isNot(contains('super-secret-token')));
       });
     });
+
+    group('getBigInt', () {
+      test('parses small integer', () {
+        expect(Env({'N': '42'}).getBigInt('N'), equals(BigInt.from(42)));
+      });
+
+      test('parses value larger than int64', () {
+        final huge = '99999999999999999999999999';
+        expect(Env({'N': huge}).getBigInt('N'), equals(BigInt.parse(huge)));
+      });
+
+      test('returns default when key missing', () {
+        expect(Env({}).getBigInt('N', defaultValue: BigInt.one), equals(BigInt.one));
+      });
+
+      test('throws EnvMissingKeyException when missing and no default', () {
+        expect(() => Env({}).getBigInt('N'), throwsA(isA<EnvMissingKeyException>()));
+      });
+
+      test('throws EnvParseException for non-numeric value', () {
+        expect(() => Env({'N': 'abc'}).getBigInt('N'), throwsA(isA<EnvParseException>()));
+      });
+    });
+
+    group('prefixed', () {
+      test('keeps only matching keys', () {
+        final env = Env({'DB_HOST': 'localhost', 'DB_PORT': '5432', 'APP_NAME': 'demo'});
+        final db = env.prefixed('DB_');
+        expect(db.keys, containsAll(['DB_HOST', 'DB_PORT']));
+        expect(db.has('APP_NAME'), isFalse);
+      });
+
+      test('stripPrefix removes the prefix from keys', () {
+        final env = Env({'DB_HOST': 'localhost', 'DB_PORT': '5432'});
+        final db = env.prefixed('DB_', stripPrefix: true);
+        expect(db.getString('HOST'), equals('localhost'));
+        expect(db.getInt('PORT'), equals(5432));
+        expect(db.has('DB_HOST'), isFalse);
+      });
+
+      test('empty prefix returns all keys', () {
+        final env = Env({'A': '1', 'B': '2'});
+        expect(env.prefixed('').keys, containsAll(['A', 'B']));
+      });
+
+      test('does not mutate original', () {
+        final env = Env({'A': '1', 'B': '2'});
+        env.prefixed('A');
+        expect(env.length, equals(2));
+      });
+    });
+
+    group('filter', () {
+      test('keeps entries where predicate is true', () {
+        final env = Env({'A': '1', 'B': '2', 'C': '3'});
+        final evens = env.filter((k, v) => int.parse(v).isEven);
+        expect(evens.keys, equals(['B']));
+      });
+
+      test('returns empty env when nothing matches', () {
+        final env = Env({'A': '1', 'B': '2'});
+        expect(env.filter((k, v) => false).isEmpty, isTrue);
+      });
+    });
+
+    group('collection ergonomics', () {
+      test('length reports key count', () {
+        expect(Env({'A': '1', 'B': '2'}).length, equals(2));
+      });
+
+      test('isEmpty is true for empty env', () {
+        expect(Env({}).isEmpty, isTrue);
+        expect(Env({}).isNotEmpty, isFalse);
+      });
+
+      test('isNotEmpty is true when keys exist', () {
+        expect(Env({'A': '1'}).isNotEmpty, isTrue);
+        expect(Env({'A': '1'}).isEmpty, isFalse);
+      });
+    });
+
+    group('equality', () {
+      test('two envs with same entries are equal', () {
+        expect(Env({'A': '1', 'B': '2'}), equals(Env({'A': '1', 'B': '2'})));
+      });
+
+      test('equal envs have equal hashCodes', () {
+        expect(Env({'A': '1'}).hashCode, equals(Env({'A': '1'}).hashCode));
+      });
+
+      test('different values are not equal', () {
+        expect(Env({'A': '1'}) == Env({'A': '2'}), isFalse);
+      });
+
+      test('different keys are not equal', () {
+        expect(Env({'A': '1'}) == Env({'B': '1'}), isFalse);
+      });
+    });
+
+    group('fromFiles', () {
+      test('merges multiple files with later wins', () {
+        final tmp = Directory.systemTemp;
+        final stamp = DateTime.now().microsecondsSinceEpoch;
+        final base = File('${tmp.path}/dart-env-base-$stamp.env')..writeAsStringSync('A=1\nB=2\n');
+        final local = File('${tmp.path}/dart-env-local-$stamp.env')..writeAsStringSync('B=override\nC=3\n');
+        addTearDown(() {
+          if (base.existsSync()) base.deleteSync();
+          if (local.existsSync()) local.deleteSync();
+        });
+
+        final env = Env.fromFiles([base.path, local.path]);
+        expect(env.getString('A'), equals('1'));
+        expect(env.getString('B'), equals('override'));
+        expect(env.getString('C'), equals('3'));
+      });
+
+      test('throws FileSystemException when a path is missing', () {
+        final missing = '${Directory.systemTemp.path}/does-not-exist-${DateTime.now().microsecondsSinceEpoch}.env';
+        expect(() => Env.fromFiles([missing]), throwsA(isA<FileSystemException>()));
+      });
+
+      test('empty list returns empty env', () {
+        expect(Env.fromFiles([]).isEmpty, isTrue);
+      });
+    });
   });
 }

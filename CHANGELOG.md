@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-16
+
+### Added
+- `Env.fromFiles(List<String> paths)` factory to load and merge multiple `.env` files in priority order (later paths override earlier ones)
+- `getBigInt()` for parsing values that exceed the platform `int` range
+- `prefixed(String prefix, {bool stripPrefix = false})` returns a new `Env` with only keys matching `prefix`
+- `filter(bool Function(String, String))` returns a new `Env` containing only matching entries
+- `length`, `isEmpty`, `isNotEmpty` getters
+- `operator ==` and `hashCode` based on underlying entries
+- Parser: multi-line values inside double quotes (e.g. embedded PEM keys)
+
+### Changed
+- `lints` dev dependency narrowed to `^5.0.0` to match the package template
+
 ## [0.5.0] - 2026-05-13
 
 ### Added

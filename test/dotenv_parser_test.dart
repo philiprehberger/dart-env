@@ -84,6 +84,36 @@ void main() {
       });
     });
 
+    group('multi-line double-quoted values', () {
+      test('joins value spanning multiple lines', () {
+        final content = 'KEY="line one\nline two\nline three"';
+        final result = DotenvParser.parse(content);
+        expect(result['KEY'], equals('line one\nline two\nline three'));
+      });
+
+      test('preserves RSA-key style content', () {
+        final content = 'PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA\n-----END RSA PRIVATE KEY-----"\nOTHER=ok';
+        final result = DotenvParser.parse(content);
+        expect(result['PRIVATE_KEY'], contains('BEGIN RSA PRIVATE KEY'));
+        expect(result['PRIVATE_KEY'], contains('MIIEowIBAAKCAQEA'));
+        expect(result['PRIVATE_KEY'], contains('END RSA PRIVATE KEY'));
+        expect(result['OTHER'], equals('ok'));
+      });
+
+      test('escape sequences still decode inside multi-line value', () {
+        final content = 'KEY="part one\nwith \\t tab"';
+        final result = DotenvParser.parse(content);
+        expect(result['KEY'], equals('part one\nwith \t tab'));
+      });
+
+      test('single-line double-quoted value still works after refactor', () {
+        final result = DotenvParser.parse('A=1\nKEY="hello"\nB=2');
+        expect(result['KEY'], equals('hello'));
+        expect(result['A'], equals('1'));
+        expect(result['B'], equals('2'));
+      });
+    });
+
     group('default variable fallback', () {
       test('uses variable value when variable exists', () {
         final result = DotenvParser.parse('HOST=server\nURL=\${HOST:-localhost}');

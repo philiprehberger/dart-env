@@ -4,6 +4,8 @@
 [![pub package](https://img.shields.io/pub/v/philiprehberger_env.svg)](https://pub.dev/packages/philiprehberger_env)
 [![Last updated](https://img.shields.io/github/last-commit/philiprehberger/dart-env)](https://github.com/philiprehberger/dart-env/commits/main)
 
+![philiprehberger_env](https://raw.githubusercontent.com/philiprehberger/dart-env/main/package-card.webp)
+
 Dotenv file parser with typed getters and multi-environment support
 
 ## Requirements
@@ -16,7 +18,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  philiprehberger_env: ^0.5.0
+  philiprehberger_env: ^0.6.0
 ```
 
 Then run:
@@ -114,6 +116,17 @@ final env = Env.fromFile('.env');
 print(env.getString('DB_HOST'));
 ```
 
+### Loading Multiple Files
+
+Layer environment files in priority order — later paths win. The typical pattern is `.env` for shared defaults and `.env.local` for machine-specific overrides:
+
+```dart
+final env = Env.fromFiles(['.env', '.env.local']);
+print(env.getString('DB_HOST')); // .env.local wins if set
+```
+
+Throws `FileSystemException` if any path is missing — wrap individual paths in `try`/`catch` if a file is optional.
+
 ### Date and Duration Values
 
 ```dart
@@ -125,6 +138,44 @@ env.getDuration('TTL');         // Duration(hours: 2)
 ```
 
 Duration suffixes: `ms`, `s`, `m`, `h`, `d`. A bare integer is treated as milliseconds.
+
+### Filtering and Namespacing
+
+Extract a subset of an `Env` by prefix (e.g. all database settings) or by an arbitrary predicate:
+
+```dart
+final env = Env.fromString('DB_HOST=localhost\nDB_PORT=5432\nAPP_NAME=demo');
+
+final db = env.prefixed('DB_', stripPrefix: true);
+print(db.getString('HOST')); // localhost
+print(db.getInt('PORT'));    // 5432
+
+final secrets = env.filter((key, value) => key.endsWith('_TOKEN'));
+```
+
+Both methods return new `Env` instances — the original is unchanged.
+
+### BigInt Values
+
+```dart
+final env = Env.fromString('BALANCE=99999999999999999999');
+env.getBigInt('BALANCE'); // BigInt — exact, no precision loss
+```
+
+### Multi-line Values
+
+Double-quoted values may span multiple lines, useful for things like PEM-encoded keys:
+
+```env
+PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEA...
+-----END RSA PRIVATE KEY-----"
+```
+
+```dart
+final env = Env.fromFile('.env');
+print(env.getString('PRIVATE_KEY'));
+```
 
 ### Required Keys
 
@@ -172,8 +223,10 @@ env.getInt('PORT'); // 8080
 | `Env.fromString(String content)` | Parse a `.env` file content string |
 | `Env.fromPlatform()` | Load all variables from the process environment |
 | `Env.fromFile(String path)` | Load and parse a `.env` file from disk |
+| `Env.fromFiles(List<String> paths)` | Load and merge multiple `.env` files in priority order (later wins) |
 | `getString(String key, {String? defaultValue})` | Get a string value |
 | `getInt(String key, {int? defaultValue})` | Get an integer value |
+| `getBigInt(String key, {BigInt? defaultValue})` | Get a BigInt value |
 | `getBool(String key, {bool? defaultValue})` | Get a boolean (`true`/`1`/`yes`/`on`) |
 | `getDouble(String key, {double? defaultValue})` | Get a double value |
 | `getList(String key, {String separator, List<String>? defaultValue})` | Get a list by splitting on separator |
@@ -185,8 +238,12 @@ env.getInt('PORT'); // 8080
 | `has(String key)` | Check if a key exists |
 | `require(Iterable<String> keys)` | Throw if any required key is missing (lists all missing) |
 | `keys` | Get all available keys |
+| `length` / `isEmpty` / `isNotEmpty` | Collection ergonomics |
 | `merge(Env other)` | Combine with another Env (other wins on overlap) |
+| `prefixed(String prefix, {bool stripPrefix = false})` | New Env with only keys starting with `prefix` |
+| `filter(bool Function(String, String) predicate)` | New Env containing only matching entries |
 | `toMap()` | Get all values as a map |
+| `operator ==` / `hashCode` | Equality by underlying entries |
 | `DotenvParser.parse(String content)` | Parse `.env` content into a `Map<String, String>` |
 
 ## Development
